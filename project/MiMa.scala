@@ -1018,7 +1018,12 @@ object MiMa extends AutoPlugin {
 
       ),
       "2.4.12" -> Seq(
-        ProblemFilters.exclude[ReversedMissingMethodProblem]("akka.stream.Materializer.materialize")
+        ProblemFilters.exclude[ReversedMissingMethodProblem]("akka.stream.Materializer.materialize"),
+        
+        // #21645 durable distributed data
+        ProblemFilters.exclude[DirectMissingMethodProblem]("akka.cluster.ddata.WriteAggregator.props"),
+        ProblemFilters.exclude[DirectMissingMethodProblem]("akka.cluster.ddata.WriteAggregator.this"),
+        ProblemFilters.exclude[IncompatibleResultTypeProblem]("akka.cluster.ddata.Replicator.write")
       )
     )
   }
