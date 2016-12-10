@@ -19,7 +19,7 @@ object Dependencies {
   val Versions = Seq(
     crossScalaVersions := Seq("2.11.8"), // "2.12.0"
     scalaVersion := crossScalaVersions.value.head,
-    scalaStmVersion := sys.props.get("akka.build.scalaStmVersion").getOrElse("0.7"),
+    scalaStmVersion := sys.props.get("akka.build.scalaStmVersion").getOrElse("0.8"),
     scalaCheckVersion := sys.props.get("akka.build.scalaCheckVersion").getOrElse(
       if (scalaVersion.value.startsWith("2.12")) "1.13.4" // does not work for 2.11
       else "1.13.2"
@@ -61,7 +61,9 @@ object Dependencies {
 
     // ssl-config
     val sslConfigCore = "com.typesafe"                %% "ssl-config-core"             % sslConfigVersion // ApacheV2
-
+    
+    val lmdb          = "org.lmdbjava"                % "lmdbjava"                     % "0.0.4" // ApacheV2, OpenLDAP Public License
+    
     // For akka-http-testkit-java
     val junit       = "junit"                         % "junit"                        % junitVersion  // Common Public License 1.0
 
@@ -142,7 +144,7 @@ object Dependencies {
 
   val clusterMetrics = l ++= Seq(Provided.sigarLoader, Test.slf4jJul, Test.slf4jLog4j, Test.logback, Test.mockito)
 
-  val distributedData = l ++= Seq(Test.junit, Test.scalatest.value)
+  val distributedData = l ++= Seq(lmdb, Test.junit, Test.scalatest.value)
 
   val slf4j = l ++= Seq(slf4jApi, Test.logback)
 

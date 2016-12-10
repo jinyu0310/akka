@@ -11,7 +11,6 @@ import akka.event.LoggingAdapter
 import akka.japi.{ Pair, Util, function }
 import akka.stream._
 import akka.stream.impl.{ ConstantFun, StreamLayout, SourceQueueAdapter }
-import akka.stream.stage.Stage
 import org.reactivestreams.{ Publisher, Subscriber }
 import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.JavaConverters._
@@ -222,6 +221,14 @@ object Source {
     new Source(scaladsl.Source.failed(cause))
 
   /**
+   * Creates a `Source` that is not materialized until there is downstream demand, when the source gets materialized
+   * the materialized future is completed with its value, if downstream cancels or fails without any demand the
+   * `create` factory is never called and the materialized `CompletionStage` is failed.
+   */
+  def lazily[T, M](create: function.Creator[Source[T, M]]): Source[T, CompletionStage[M]] =
+    scaladsl.Source.lazily[T, M](() ⇒ create.create().asScala).mapMaterializedValue(_.toJava).asJava
+
+  /**
    * Creates a `Source` that is materialized as a [[org.reactivestreams.Subscriber]]
    */
   def asSubscriber[T](): Source[T, Subscriber[T]] =
@@ -327,8 +334,9 @@ object Source {
    * You can watch accessibility of stream with [[akka.stream.javadsl.SourceQueue.watchCompletion]].
    * It returns future that completes with success when stream is completed or fail when stream is failed.
    *
-   * The buffer can be disabled by using `bufferSize` of 0 and then received message will wait for downstream demand.
-   * When `bufferSize` is 0 the `overflowStrategy` does not matter.
+   * The buffer can be disabled by using `bufferSize` of 0 and then received message will wait
+   * for downstream demand unless there is another message waiting for downstream demand, in that case
+   * offer result will be completed according to the overflow strategy.
    *
    * SourceQueue that current source is materialized to is for single thread usage only.
    *
@@ -1692,15 +1700,6 @@ final class Source[+Out, +Mat](delegate: scaladsl.Source[Out, Mat]) extends Grap
     new Source(delegate.buffer(size, overflowStrategy))
 
   /**
-   * Generic transformation of a stream with a custom processing [[akka.stream.stage.Stage]].
-   * This operator makes it possible to extend the `Flow` API when there is no specialized
-   * operator that performs the transformation.
-   */
-  @deprecated("Use via(GraphStage) instead.", "2.4.3")
-  def transform[U](mkStage: function.Creator[Stage[Out, U]]): javadsl.Source[U, Mat] =
-    new Source(delegate.transform(() ⇒ mkStage.create()))
-
-  /**
    * Takes up to `n` elements from the stream (less than `n` if the upstream completes before emitting `n` elements)
    * and returns a pair containing a strict sequence of the taken element
    * and a stream representing the remaining elements. If ''n'' is zero or negative, then this will return a pair
@@ -2068,7 +2067,7 @@ final class Source[+Out, +Mat](delegate: scaladsl.Source[Out, Mat]) extends Grap
     new Source(delegate.watchTermination()((left, right) ⇒ matF(left, right.toJava)))
 
   /**
-   * Materializes to `FlowMonitor[Out]` that allows monitoring of the the current flow. All events are propagated
+   * Materializes to `FlowMonitor[Out]` that allows monitoring of the current flow. All events are propagated
    * by the monitor unchanged. Note that the monitor inserts a memory barrier every time it processes an
    * event, and may therefor affect performance.
    * The `combine` function is used to combine the `FlowMonitor` with this flow's materialized value.

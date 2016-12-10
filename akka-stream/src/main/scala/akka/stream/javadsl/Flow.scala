@@ -8,7 +8,6 @@ import akka.event.LoggingAdapter
 import akka.japi.{ Pair, function }
 import akka.stream.impl.{ ConstantFun, StreamLayout }
 import akka.stream._
-import akka.stream.stage.Stage
 import org.reactivestreams.Processor
 
 import scala.annotation.unchecked.uncheckedVariance
@@ -1099,15 +1098,6 @@ final class Flow[-In, +Out, +Mat](delegate: scaladsl.Flow[In, Out, Mat]) extends
     new Flow(delegate.buffer(size, overflowStrategy))
 
   /**
-   * Generic transformation of a stream with a custom processing [[akka.stream.stage.Stage]].
-   * This operator makes it possible to extend the `Flow` API when there is no specialized
-   * operator that performs the transformation.
-   */
-  @deprecated("Use via(GraphStage) instead.", "2.4.3")
-  def transform[U](mkStage: function.Creator[Stage[Out, U]]): javadsl.Flow[In, U, Mat] =
-    new Flow(delegate.transform(() ⇒ mkStage.create()))
-
-  /**
    * Takes up to `n` elements from the stream (less than `n` if the upstream completes before emitting `n` elements)
    * and returns a pair containing a strict sequence of the taken element
    * and a stream representing the remaining elements. If ''n'' is zero or negative, then this will return a pair
@@ -1869,7 +1859,7 @@ final class Flow[-In, +Out, +Mat](delegate: scaladsl.Flow[In, Out, Mat]) extends
     new Flow(delegate.watchTermination()((left, right) ⇒ matF(left, right.toJava)))
 
   /**
-   * Materializes to `FlowMonitor[Out]` that allows monitoring of the the current flow. All events are propagated
+   * Materializes to `FlowMonitor[Out]` that allows monitoring of the current flow. All events are propagated
    * by the monitor unchanged. Note that the monitor inserts a memory barrier every time it processes an
    * event, and may therefor affect performance.
    * The `combine` function is used to combine the `FlowMonitor` with this flow's materialized value.
